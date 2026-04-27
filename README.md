@@ -1,0 +1,1 @@
+# Run the images.ipynb notebook to download, normalize and visualize the images. 
