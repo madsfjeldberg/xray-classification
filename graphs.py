@@ -2,35 +2,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_loss_flattening(losses, window_size=3, title="Loss Flattening Detection", save_path=None):
+def plot_loss_flattening(train_losses, eval_losses=None, window_size=3, title="Loss Flattening Detection", save_path=None):
     """
-    Plots loss over epochs and highlights flattening regions.
-    
-    Flattening is detected by computing the gradient (rate of change) 
+    Plots train (and optionally eval) loss over epochs and highlights flattening regions.
+
+    Flattening is detected by computing the gradient (rate of change)
     and identifying when it becomes small (close to flat).
-    
+
     Parameters:
-    - losses: list of loss values per epoch
+    - train_losses: list of training loss values per epoch
+    - eval_losses: optional list of eval loss values per epoch
     - window_size: size of moving average window to smooth the curve
     - title: plot title
     - save_path: optional path to save the figure
     """
-    losses = np.asarray(losses, dtype=float)
+    losses = np.asarray(train_losses, dtype=float)
     if len(losses) == 0:
         raise ValueError("losses must not be empty.")
-    
+
     epochs = np.arange(1, len(losses) + 1)
-    
+
     # Compute rate of change (gradient)
     gradient = np.abs(np.gradient(losses))
-    
+
     # Smooth gradient with moving average
     smoothed_gradient = np.convolve(gradient, np.ones(window_size)/window_size, mode='same')
-    
+
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
-    
+
     # Plot 1: Loss over epochs
-    ax1.plot(epochs, losses, marker='o', linewidth=2, label='Loss', color='steelblue')
+    ax1.plot(epochs, losses, marker='o', linewidth=2, label='Train Loss', color='steelblue')
+    if eval_losses is not None:
+        ax1.plot(epochs, np.asarray(eval_losses, dtype=float), marker='o', linewidth=2, label='Eval Loss', color='orange')
     ax1.set_xlabel('Epoch')
     ax1.set_ylabel('Loss')
     ax1.set_title(f'{title} - Loss Curve')

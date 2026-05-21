@@ -31,17 +31,13 @@ def run_validate(dt, X_train, y_train, X_eval, y_eval):
     print("Decision Tree Classifier:")
     print(classification_report(y_eval, y_pred))
 
-def run(dt, X_train, y_train, X_test, y_test):
+def test(dt, X_test, y_test):
     
-    X_train = _to_2d_features(X_train)
     X_test = _to_2d_features(X_test)
-    y_train = np.asarray(y_train).ravel()
     y_test = np.asarray(y_test).ravel()
 
-    # Train a Decision Tree classifier
-    print("Training Decision Tree classifier...")
-
-    dt.fit(X_train, y_train)
+    # Test a Decision Tree classifier
+    print("Testing Decision Tree classifier...")
 
     # Predict on the test set
     y_pred = dt.predict(X_test)
