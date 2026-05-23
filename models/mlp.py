@@ -156,4 +156,6 @@ def run(path, device, num_epochs=30, lr=1e-4, test=False):
         test_preds, test_labels = evaluate(model, test_loader)
         print("Test:\n", classification_report(test_labels.astype(int), (test_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
 
+        return model, train_losses, eval_losses, eval_preds, eval_labels, test_preds, test_labels
+
     return model, train_losses, eval_losses, eval_preds, eval_labels
