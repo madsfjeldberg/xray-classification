@@ -5,7 +5,7 @@ import numpy as np
 def _iter_class_directories(path):
   """Yield (split_name_or_none, class_name, class_dir) for supported dataset layouts."""
   class_names = ["NORMAL", "PNEUMONIA"]
-  split_names = ["train", "test", "val"]
+  split_names = ["train", "test", "eval"]
 
   # Layout A: path/NORMAL, path/PNEUMONIA
   flat_found = False

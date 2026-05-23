@@ -29,7 +29,7 @@ def run_validate(dt, X_train, y_train, X_eval, y_eval):
     dt_acc = dt.score(X_eval, y_eval)
     print(f"Decision Tree accuracy: {dt_acc:.4f}  ({dt_acc*100:.2f} %)")
     print("Decision Tree Classifier:")
-    print(classification_report(y_eval, y_pred))
+    print(classification_report(y_eval, y_pred, target_names=["NORMAL", "PNEUMONIA"]))
 
 def test(dt, X_test, y_test):
     
@@ -46,4 +46,4 @@ def test(dt, X_test, y_test):
     dt_acc = dt.score(X_test, y_test)
     print(f"Decision Tree accuracy: {dt_acc:.4f}  ({dt_acc*100:.2f} %)")
     print("Decision Tree Classifier:")
-    print(classification_report(y_test, y_pred))
+    print(classification_report(y_test, y_pred, target_names=["NORMAL", "PNEUMONIA"]))

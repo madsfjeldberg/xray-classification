@@ -5,6 +5,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms, models
 import numpy as np
+from sklearn.metrics import classification_report
 
 
 def build_model():
@@ -132,8 +133,7 @@ def run(path, device, num_epochs=10, lr=1e-4):
     train_preds, train_labels = evaluate(model, train_subset_loader)
     test_preds, test_labels = evaluate(model, test_loader)
 
-    score_train = binary_accuracy(train_preds, train_labels)
-    score_test = binary_accuracy(test_preds, test_labels)
-    print(f"Score Train: {score_train:.3f} | Score Test: {score_test:.3f}")
+    print("Train:\n", classification_report(train_labels.astype(int), (train_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+    print("Test:\n",  classification_report(test_labels.astype(int),  (test_preds  >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
 
     return model, train_losses, eval_losses, test_preds, test_labels

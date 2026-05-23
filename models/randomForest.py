@@ -31,7 +31,7 @@ def run_validate(rf, X_train, y_train, X_val, y_val):
     rf_acc = rf.score(X_val, y_val)
     print(f"Random Forest accuracy: {rf_acc:.4f}  ({rf_acc*100:.2f} %)")
     print("Random Forest Classifier:")
-    print(classification_report(y_val, y_pred))
+    print(classification_report(y_val, y_pred, target_names=["NORMAL", "PNEUMONIA"]))
 
 def test(rf, X_test, y_test):
     
@@ -47,4 +47,4 @@ def test(rf, X_test, y_test):
     rf_acc = rf.score(X_test, y_test)
     print(f"Random Forest accuracy: {rf_acc:.4f}  ({rf_acc*100:.2f} %)")
     print("Random Forest Classifier:")
-    print(classification_report(y_test, y_pred))
+    print(classification_report(y_test, y_pred, target_names=["NORMAL", "PNEUMONIA"]))
