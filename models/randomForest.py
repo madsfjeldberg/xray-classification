@@ -14,12 +14,31 @@ def _to_2d_features(X):
         return X.reshape(X.shape[0], -1)
     return X
 
+
+def _validate_dataset(X, y, split_name):
+    if X.shape[0] == 0:
+        raise ValueError(
+            f"'{split_name}' dataset is empty after preprocessing. "
+            "Verify split name and image files."
+        )
+    if y.shape[0] == 0:
+        raise ValueError(
+            f"'{split_name}' labels are empty after preprocessing. "
+            "Verify split name and label loading."
+        )
+    if X.shape[0] != y.shape[0]:
+        raise ValueError(
+            f"Sample/label mismatch for '{split_name}': {X.shape[0]} samples vs {y.shape[0]} labels."
+        )
+
 def run_validate(rf, X_train, y_train, X_val, y_val):
 
     X_train = _to_2d_features(X_train)
     X_val = _to_2d_features(X_val)
     y_train = np.asarray(y_train).ravel()
     y_val = np.asarray(y_val).ravel()
+    _validate_dataset(X_train, y_train, "train")
+    _validate_dataset(X_val, y_val, "val")
     # Train the Random Forest classifier
     print("Training Random Forest classifier...")
     rf.fit(X_train, y_train)
@@ -37,6 +56,7 @@ def test(rf, X_test, y_test):
     
     X_test = _to_2d_features(X_test)
     y_test = np.asarray(y_test).ravel()
+    _validate_dataset(X_test, y_test, "test")
 
     print("Testing Random Forest classifier...")
 

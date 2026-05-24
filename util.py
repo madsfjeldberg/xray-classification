@@ -135,10 +135,12 @@ def load_dataset(path, split_name):
   images = []
   labels = []
   target_split = _canonicalize_split_name(split_name)
+  matched_class_dirs = 0
 
   for found_split, class_name, class_dir in _iter_class_directories(path):
     if target_split is not None and found_split != target_split:
       continue
+    matched_class_dirs += 1
     for filename in os.listdir(class_dir):
       image_path = os.path.join(class_dir, filename)
       if os.path.isfile(image_path):
@@ -148,4 +150,25 @@ def load_dataset(path, split_name):
           labels.append(0 if class_name == "NORMAL" else 1)
         except Exception as error:
           print(f"Skipping {image_path}: {error}")
+
+  if target_split is not None and matched_class_dirs == 0:
+    available_splits = sorted(
+      {
+        found_split
+        for found_split, _, _ in _iter_class_directories(path)
+        if found_split is not None
+      }
+    )
+    raise ValueError(
+      f"No class directories found for split '{split_name}' in '{path}'. "
+      f"Available canonical splits: {available_splits or 'none'}"
+    )
+
+  if len(images) == 0:
+    split_label = target_split if target_split is not None else "all"
+    raise ValueError(
+      f"Loaded 0 images for split '{split_label}' from '{path}'. "
+      "Check that the directory contains readable image files."
+    )
+
   return np.array(images), np.array(labels)
