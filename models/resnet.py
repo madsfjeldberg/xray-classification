@@ -38,7 +38,7 @@ def get_dataloaders(path, batch_size=32):
     train_transform, eval_transform = get_transforms()
 
     train_dataset = datasets.ImageFolder(f"{path}/train", transform=train_transform)
-    eval_dataset  = datasets.ImageFolder(f"{path}/eval",  transform=eval_transform)
+    eval_dataset  = datasets.ImageFolder(f"{path}/val",  transform=eval_transform)
     test_dataset  = datasets.ImageFolder(f"{path}/test",  transform=eval_transform)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=2)
@@ -107,7 +107,7 @@ def evaluate(model, loader):
     return np.array(all_preds), np.array(all_labels)
 
 
-def run(path, device, num_epochs=10, lr=1e-4):
+def run(path, device, num_epochs=10, lr=1e-4, test=False):
     train_loader, eval_loader, test_loader, train_subset_loader = get_dataloaders(path)
 
     model = build_model().to(device)
@@ -131,9 +131,14 @@ def run(path, device, num_epochs=10, lr=1e-4):
     print(f"Training time: {time.time() - t0:.3f}s")
 
     train_preds, train_labels = evaluate(model, train_subset_loader)
-    test_preds, test_labels = evaluate(model, test_loader)
+    eval_preds, eval_labels = evaluate(model, eval_loader)
 
     print("Train:\n", classification_report(train_labels.astype(int), (train_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
-    print("Test:\n",  classification_report(test_labels.astype(int),  (test_preds  >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+    print("Eval:\n",  classification_report(eval_labels.astype(int),  (eval_preds  >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
 
-    return model, train_losses, eval_losses, test_preds, test_labels
+    if test:
+        test_preds, test_labels = evaluate(model, test_loader)
+        print("Test:\n", classification_report(test_labels.astype(int), (test_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+        return model, train_losses, eval_losses, eval_preds, eval_labels, test_preds, test_labels
+
+    return model, train_losses, eval_losses, eval_preds, eval_labels

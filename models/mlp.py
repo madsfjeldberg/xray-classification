@@ -54,7 +54,7 @@ def get_dataloaders(path, batch_size=32):
     train_transform, eval_transform = get_transforms()
 
     train_dataset = datasets.ImageFolder(f"{path}/train", transform=train_transform)
-    eval_dataset   = datasets.ImageFolder(f"{path}/eval",   transform=eval_transform)
+    eval_dataset   = datasets.ImageFolder(f"{path}/val",   transform=eval_transform)
     test_dataset  = datasets.ImageFolder(f"{path}/test",  transform=eval_transform)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=2)
@@ -150,7 +150,7 @@ def run(path, device, num_epochs=30, lr=1e-4, test=False):
     eval_preds, eval_labels = evaluate(model, eval_loader)
 
     print("Train:\n", classification_report(train_labels.astype(int), (train_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
-    print("Eval:\n",  classification_report(eval_labels.astype(int),  (eval_preds  >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+    print("Val:\n",  classification_report(eval_labels.astype(int),  (eval_preds  >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
 
     if test:
         test_preds, test_labels = evaluate(model, test_loader)
