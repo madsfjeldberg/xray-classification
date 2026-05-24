@@ -2,40 +2,86 @@ import os
 from PIL import Image
 import numpy as np
 
+
+def _canonicalize_split_name(split_name):
+  """Map split aliases to canonical names used by this project."""
+  if split_name is None:
+    return None
+  normalized = str(split_name).strip().lower()
+  mapping = {
+    "train": "train",
+    "training": "train",
+    "test": "test",
+    "testing": "test",
+    "eval": "eval",
+    "evaluation": "eval",
+    "val": "eval",
+    "validation": "eval",
+  }
+  return mapping.get(normalized, normalized)
+
+
+def _canonicalize_class_name(class_name):
+  """Map class aliases to canonical binary labels used by this project."""
+  normalized = str(class_name).strip().lower()
+  mapping = {
+    "normal": "NORMAL",
+    "pneumonia": "PNEUMONIA",
+  }
+  return mapping.get(normalized)
+
 def _iter_class_directories(path):
   """Yield (split_name_or_none, class_name, class_dir) for supported dataset layouts."""
-  class_names = ["NORMAL", "PNEUMONIA"]
-  split_names = ["train", "test", "eval"]
+  split_aliases = {
+    "train": ["train", "training"],
+    "test": ["test", "testing"],
+    "eval": ["eval", "val", "validation", "valid"],
+  }
 
-  # Layout A: path/NORMAL, path/PNEUMONIA
+  # Layout A: path/NORMAL|normal, path/PNEUMONIA|pneumonia
   flat_found = False
-  for class_name in class_names:
-    class_dir = os.path.join(path, class_name)
-    if os.path.isdir(class_dir):
-      flat_found = True
-      yield None, class_name, class_dir
+  for entry in os.listdir(path):
+    class_dir = os.path.join(path, entry)
+    if not os.path.isdir(class_dir):
+      continue
+    class_name = _canonicalize_class_name(entry)
+    if class_name is None:
+      continue
+    flat_found = True
+    yield None, class_name, class_dir
 
   if flat_found:
     return
 
-  # Layout B: path/train|test|val/NORMAL|PNEUMONIA
-  for split_name in split_names:
-    split_dir = os.path.join(path, split_name)
-    if not os.path.isdir(split_dir):
+  # Layout B: path/train|test|eval|val/NORMAL|PNEUMONIA
+  for split_name, aliases in split_aliases.items():
+    split_dir = None
+    for alias in aliases:
+      candidate = os.path.join(path, alias)
+      if os.path.isdir(candidate):
+        split_dir = candidate
+        break
+
+    if split_dir is None:
       continue
-    for class_name in class_names:
-      class_dir = os.path.join(split_dir, class_name)
-      if os.path.isdir(class_dir):
-        yield split_name, class_name, class_dir
+
+    for entry in os.listdir(split_dir):
+      class_dir = os.path.join(split_dir, entry)
+      if not os.path.isdir(class_dir):
+        continue
+      class_name = _canonicalize_class_name(entry)
+      if class_name is None:
+        continue
+      yield split_name, class_name, class_dir
 
 
 # Normalize images and save locally
 # Also check if images have alreaduy been normalized and saved, to avoid doing it again.
 def normalize_and_save_images(path, output_path):
-  # check if normalized images already exist
+  # Normalize incrementally so missing splits/classes are still added.
+  existing_files = 0
   if os.path.exists(output_path):
-    print(f"Output path {output_path} already exists. Skipping normalization.")
-    return
+    print(f"Output path {output_path} already exists. Normalizing only missing files.")
 
   saved_images = 0
 
@@ -51,8 +97,12 @@ def normalize_and_save_images(path, output_path):
       image_path = os.path.join(class_dir, filename)
       if os.path.isfile(image_path):
         try:
-          normalized_image = normalize_image(image_path)
           output_image_path = os.path.join(output_subfolder, filename)
+          if os.path.exists(output_image_path):
+            existing_files += 1
+            continue
+
+          normalized_image = normalize_image(image_path)
           Image.fromarray((normalized_image[0] * 255).astype(np.uint8)).save(output_image_path)
           saved_images += 1
           if saved_images % 100 == 0:
@@ -63,10 +113,13 @@ def normalize_and_save_images(path, output_path):
   if saved_images == 0:
     print(
       "No images were saved. Expected either path/NORMAL|PNEUMONIA or "
-      "path/train|test|val/NORMAL|PNEUMONIA"
+      "path/train|test|eval|val/NORMAL|PNEUMONIA"
     )
   else:
     print(f"Done. Saved {saved_images} normalized images to {output_path}")
+
+  if existing_files > 0:
+    print(f"Skipped {existing_files} files that were already normalized")
 
 
 def normalize_image(image):
@@ -81,8 +134,10 @@ def normalize_image(image):
 def load_dataset(path, split_name):
   images = []
   labels = []
-  for _, class_name, class_dir in _iter_class_directories(path):
-    if split_name is not None and not class_dir.startswith(os.path.join(path, split_name)):
+  target_split = _canonicalize_split_name(split_name)
+
+  for found_split, class_name, class_dir in _iter_class_directories(path):
+    if target_split is not None and found_split != target_split:
       continue
     for filename in os.listdir(class_dir):
       image_path = os.path.join(class_dir, filename)
