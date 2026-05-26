@@ -1,5 +1,51 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
+from torchvision import datasets
+
+
+def show_missed_pneumonia(path, test_preds, test_labels, threshold=0.5, max_images=16):
+    """
+    Display pneumonia X-rays that the MLP misclassified as normal (false negatives).
+
+    Parameters:
+    - path:        dataset root passed to run(), e.g. "./normalized_images"
+    - test_preds:  model output probabilities (from run() with test=True)
+    - test_labels: ground truth labels (from run() with test=True)
+    - threshold:   classification threshold (should match the one used in run())
+    - max_images:  maximum number of images to display
+    """
+    dataset = datasets.ImageFolder(f"{path}/test")
+    # ImageFolder sorts classes alphabetically: NORMAL=0, PNEUMONIA=1
+
+    preds = test_preds.ravel()
+    labels = test_labels.ravel().astype(int)
+    threshold = float(threshold)
+
+    missed = [i for i, (label, pred) in enumerate(zip(labels, preds))
+              if label == 1 and pred < threshold][:max_images]
+
+    if not missed:
+        print("No missed pneumonia cases found.")
+        return
+
+    cols = 4
+    rows = (len(missed) + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
+    axes = np.array(axes).flatten()
+
+    for ax, idx in zip(axes, missed):
+        img_path, _ = dataset.imgs[idx]
+        ax.imshow(Image.open(img_path).convert("L"), cmap="gray")
+        ax.set_title(f"p={preds[idx]:.2f}", fontsize=9)
+        ax.axis("off")
+
+    for ax in axes[len(missed):]:
+        ax.axis("off")
+
+    fig.suptitle(f"Missed Pneumonia (False Negatives) — {len(missed)} shown", fontsize=13, fontweight="bold")
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_loss_flattening(train_losses, eval_losses=None, window_size=3, title="Loss Flattening Detection", save_path=None):
@@ -40,17 +86,17 @@ def plot_loss_flattening(train_losses, eval_losses=None, window_size=3, title="L
     ax1.grid(True, alpha=0.3)
     ax1.legend()
     
-    # Plot 2: Rate of change (gradient) - shows flattening
-    ax2.plot(epochs, gradient, marker='s', linewidth=1, alpha=0.5, label='Gradient (|Δloss|)', color='orange')
-    ax2.plot(epochs, smoothed_gradient, linewidth=2, label=f'Smoothed gradient (window={window_size})', color='red')
-    ax2.axhline(y=np.mean(smoothed_gradient) * 0.1, color='green', linestyle='--', label='Flattening threshold (10% of avg)')
-    ax2.set_xlabel('Epoch')
-    ax2.set_ylabel('Absolute Change in Loss')
-    ax2.set_title('Rate of Change - Lower = Flatter (Converged)')
-    ax2.grid(True, alpha=0.3)
-    ax2.legend()
+    # # Plot 2: Rate of change (gradient) - shows flattening
+    # ax2.plot(epochs, gradient, marker='s', linewidth=1, alpha=0.5, label='Gradient (|Δloss|)', color='orange')
+    # ax2.plot(epochs, smoothed_gradient, linewidth=2, label=f'Smoothed gradient (window={window_size})', color='red')
+    # ax2.axhline(y=np.mean(smoothed_gradient) * 0.1, color='green', linestyle='--', label='Flattening threshold (10% of avg)')
+    # ax2.set_xlabel('Epoch')
+    # ax2.set_ylabel('Absolute Change in Loss')
+    # ax2.set_title('Rate of Change - Lower = Flatter (Converged)')
+    # ax2.grid(True, alpha=0.3)
+    # ax2.legend()
     
-    plt.tight_layout()
+    # plt.tight_layout()
     
     if save_path:
         plt.savefig(save_path, dpi=150)

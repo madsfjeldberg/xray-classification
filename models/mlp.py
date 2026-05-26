@@ -18,11 +18,11 @@ class MLP(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(input_size, 512),
             nn.ReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(0.3),
             nn.Linear(512, 128),
             nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 1),
+            nn.Dropout(0.2),
+            nn.Linear(128, 1)
             # No Sigmoid here — use BCEWithLogitsLoss during training for numerical stability.
         )
 
@@ -50,19 +50,20 @@ def get_transforms():
     return train_transform, eval_transform
 
 
-def get_dataloaders(path, batch_size=32):
+def get_dataloaders(path, batch_size=64):
     train_transform, eval_transform = get_transforms()
 
     train_dataset = datasets.ImageFolder(f"{path}/train", transform=train_transform)
     eval_dataset   = datasets.ImageFolder(f"{path}/val",   transform=eval_transform)
     test_dataset  = datasets.ImageFolder(f"{path}/test",  transform=eval_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=2)
-    eval_loader   = DataLoader(eval_dataset,   batch_size=batch_size, shuffle=False, num_workers=2)
-    test_loader  = DataLoader(test_dataset,  batch_size=batch_size, shuffle=False, num_workers=2)
+    loader_kwargs = dict(num_workers=4, persistent_workers=True, prefetch_factor=2)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, **loader_kwargs)
+    eval_loader   = DataLoader(eval_dataset,   batch_size=batch_size, shuffle=False, **loader_kwargs)
+    test_loader  = DataLoader(test_dataset,  batch_size=batch_size, shuffle=False, **loader_kwargs)
 
     train_subset = Subset(train_dataset, range(min(10000, len(train_dataset))))
-    train_subset_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=False, num_workers=2)
+    train_subset_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=False, **loader_kwargs)
 
     return train_loader, eval_loader, test_loader, train_subset_loader
 
@@ -123,7 +124,7 @@ def evaluate(model, loader):
     return np.array(all_preds), np.array(all_labels)
 
 
-def run(path, device, num_epochs=30, lr=1e-4, test=False):
+def run(path, device, num_epochs=30, lr=1e-4, test=False, threshold=0.5):
     train_loader, eval_loader, test_loader, train_subset_loader = get_dataloaders(path)
 
     model = MLP().to(device)
@@ -149,12 +150,12 @@ def run(path, device, num_epochs=30, lr=1e-4, test=False):
     train_preds, train_labels = evaluate(model, train_subset_loader)
     eval_preds, eval_labels = evaluate(model, eval_loader)
 
-    print("Train:\n", classification_report(train_labels.astype(int), (train_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
-    print("Val:\n",  classification_report(eval_labels.astype(int),  (eval_preds  >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+    print("Train:\n", classification_report(train_labels.astype(int), (train_preds >= threshold).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+    print("Val:\n",  classification_report(eval_labels.astype(int),  (eval_preds  >= threshold).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
 
     if test:
         test_preds, test_labels = evaluate(model, test_loader)
-        print("Test:\n", classification_report(test_labels.astype(int), (test_preds >= 0.5).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
+        print("Test:\n", classification_report(test_labels.astype(int), (test_preds >= threshold).astype(int), target_names=["NORMAL", "PNEUMONIA"]))
 
         return model, train_losses, eval_losses, eval_preds, eval_labels, test_preds, test_labels
 
