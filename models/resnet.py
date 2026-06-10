@@ -38,7 +38,7 @@ def get_dataloaders(path, batch_size=64):
     train_transform, eval_transform = get_transforms()
 
     train_dataset = datasets.ImageFolder(f"{path}/train", transform=train_transform)
-    eval_dataset  = datasets.ImageFolder(f"{path}/val",  transform=eval_transform)
+    eval_dataset  = datasets.ImageFolder(f"{path}/eval",  transform=eval_transform)
     test_dataset  = datasets.ImageFolder(f"{path}/test",  transform=eval_transform)
 
     loader_kwargs = dict(num_workers=4, persistent_workers=True, prefetch_factor=2)
